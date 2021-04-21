@@ -11,4 +11,4 @@ export GODEBUG=netdns=go    # force pure Go resolver
 
 ## TODO
 
-[ ] Allow forcing golang resolver programmatically.
+- [ ] Allow forcing golang resolver programmatically.
