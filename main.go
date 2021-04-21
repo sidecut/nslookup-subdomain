@@ -10,6 +10,7 @@ import (
 )
 
 type Results struct {
+	index     int
 	ipAddress string
 	names     []string
 }
@@ -26,26 +27,31 @@ func produceResults(addrPrefix string, resultsChannel chan Results) {
 		ipAddress := fmt.Sprintf("%s%03d", addrPrefix, i)
 
 		wgLookups.Add(1)
-		go func(c chan Results) {
+		go func(i int, c chan Results) {
 			defer wgLookups.Done()
 
 			names, err := net.LookupAddr(ipAddress)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error looking up %v: %v\n", ipAddress, err)
 			} else {
-				results := Results{ipAddress: ipAddress, names: names}
+				results := Results{index: i, ipAddress: ipAddress, names: names}
 				c <- results
 			}
-		}(resultsChannel)
+		}(i, resultsChannel)
 	}
 
 	wgLookups.Wait()
 	close(resultsChannel)
 }
 
-func consumeResults(resultsChannel chan Results) {
-	fmt.Println("Address,Name")
+func consumeAndOutputResults(resultsChannel chan Results) {
+	var results [256]Results
 	for result := range resultsChannel {
+		results[result.index] = result
+	}
+
+	fmt.Println("Address,Name")
+	for _, result := range results {
 		for _, name := range result.names {
 			fmt.Printf("%s,\"%s\"\n", result.ipAddress, name)
 		}
@@ -68,5 +74,5 @@ func main() {
 
 	resultsChannel := make(chan Results)
 	go produceResults(prefix3octetString, resultsChannel)
-	consumeResults(resultsChannel)
+	consumeAndOutputResults(resultsChannel)
 }
