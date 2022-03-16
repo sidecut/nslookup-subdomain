@@ -1,12 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"os"
 	"regexp"
 	"sync"
+
+	"github.com/spf13/pflag"
 )
 
 type Results struct {
@@ -59,8 +60,8 @@ func consumeAndOutputResults(resultsChannel chan Results) {
 }
 
 func main() {
-	prefix3octet := flag.String("3", "", "3-octet Address prefix, e.g. 192.168.1. or 192.168.1")
-	flag.Parse()
+	prefix3octet := pflag.StringP("prefix3", "3", "", "3-octet Address prefix, e.g. 192.168.1. or 192.168.1")
+	pflag.Parse()
 
 	var prefix3octetString string
 	if matched, _ := regexp.MatchString(octet3Regexp, *prefix3octet); matched {
@@ -68,7 +69,7 @@ func main() {
 	} else if matched, _ := regexp.MatchString(octet3TrailingRegexp, *prefix3octet); matched {
 		prefix3octetString = *prefix3octet
 	} else {
-		flag.Usage()
+		pflag.Usage()
 		os.Exit(1)
 	}
 
