@@ -70,6 +70,14 @@ func main() {
 		prefix3octetString = *prefix3octet
 	} else {
 		pflag.Usage()
+		fmt.Fprintf(os.Stderr, `
+See https://golang.org/pkg/net/#hdr-Name_Resolution for details on using
+environment variables to force use of the golang resolver, which will return
+more than one domain name.
+
+Example:
+$ export GODEBUG=netdns=go    # force pure Go resolver
+`)
 		os.Exit(1)
 	}
 
