@@ -60,7 +60,7 @@ func consumeAndOutputResults(resultsChannel chan Results) {
 }
 
 func main() {
-	prefix3octet := pflag.StringP("prefix3", "3", "", "3-octet Address prefix, e.g. 192.168.1. or 192.168.1")
+	prefix3octet := pflag.StringP("prefix3", "3", "", "3-octet address prefix, e.g. 192.168.1. or 192.168.1")
 	pflag.Parse()
 
 	var prefix3octetString string
