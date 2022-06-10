@@ -1,5 +1,5 @@
 module github.com/sidecut/nslookup-subdomain
 
-go 1.15
+go 1.17
 
 require github.com/spf13/pflag v1.0.5
