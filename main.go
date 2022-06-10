@@ -25,7 +25,7 @@ func produceResults(addrPrefix string, resultsChannel chan Results) {
 	var wgLookups sync.WaitGroup
 
 	for i := 0; i < 256; i++ {
-		ipAddress := fmt.Sprintf("%s%03d", addrPrefix, i)
+		ipAddress := fmt.Sprintf("%s%d", addrPrefix, i)
 
 		wgLookups.Add(1)
 		go func(i int, c chan Results) {
