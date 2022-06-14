@@ -16,10 +16,12 @@ type Results struct {
 	names     []string
 }
 
-const octetRegexp = `\d{1,3}`
-const periodRegexp = "[.]"
-const octet3Regexp = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + "$"
-const octet3TrailingRegexp = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + periodRegexp + "$"
+const (
+	octetRegexp          = `\d{1,3}`
+	periodRegexp         = "[.]"
+	octet3Regexp         = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + "$"
+	octet3TrailingRegexp = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + periodRegexp + "$"
+)
 
 func produceResults(addrPrefix string, resultsChannel chan Results) {
 	var wgLookups sync.WaitGroup
