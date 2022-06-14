@@ -17,13 +17,6 @@ type Results struct {
 	names     []string
 }
 
-const (
-	octetRegexp          = `\d{1,3}`
-	periodRegexp         = "[.]"
-	octet3Regexp         = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + "$"
-	octet3TrailingRegexp = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + periodRegexp + "$"
-)
-
 var (
 	cidr *string
 )
