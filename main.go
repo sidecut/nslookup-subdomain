@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -25,13 +26,19 @@ func (a sortResultsByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a sortResultsByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
 
 var (
-	cidr *string
+	cidr   *string
+	server *string
 )
 
-func produceResults(prefix netip.Prefix, resultsChannel chan Results) {
+func produceResults(prefix netip.Prefix, server string, resultsChannel chan Results) {
 	var wgLookups sync.WaitGroup
 
-	// fmt.Printf("%v\n", prefix.Masked().Addr())
+	ctx := context.Context{}
+	res := net.Resolver{}
+
+	if server != "" {
+
+	}
 
 	addr := prefix.Masked().Addr()
 	i := 0
@@ -40,7 +47,7 @@ func produceResults(prefix netip.Prefix, resultsChannel chan Results) {
 		go func(i int, addr netip.Addr, c chan Results) {
 			defer wgLookups.Done()
 
-			names, err := net.LookupAddr(addr.String())
+			names, err := res.LookupAddr(ctx, addr.String())
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error looking up %v: %v\n", addr, err)
 			} else {
@@ -88,6 +95,7 @@ func sortResults(resultsMap map[int]Results) []Results {
 
 func main() {
 	cidr = pflag.String("cidr", "", "CIDR range")
+	server = pflag.String("server", "", "DNS server")
 	pflag.Parse()
 
 	if *cidr == "" {
@@ -111,6 +119,6 @@ func main() {
 	// fmt.Printf("%v %v\n", ipv4Addr, ipv4Net)
 
 	resultsChannel := make(chan Results)
-	go produceResults(prefix, resultsChannel)
+	go produceResults(prefix, *server, resultsChannel)
 	consumeAndOutputResults(resultsChannel)
 }
