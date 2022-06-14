@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"net/netip"
 	"os"
-	"regexp"
+	"sort"
 	"sync"
 
 	"github.com/spf13/pflag"
@@ -16,74 +18,99 @@ type Results struct {
 	names     []string
 }
 
-const (
-	octetRegexp          = `\d{1,3}`
-	periodRegexp         = "[.]"
-	octet3Regexp         = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + "$"
-	octet3TrailingRegexp = "^" + octetRegexp + periodRegexp + octetRegexp + periodRegexp + octetRegexp + periodRegexp + "$"
+type sortResultsByIndex []Results
+
+func (a sortResultsByIndex) Len() int           { return len(a) }
+func (a sortResultsByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortResultsByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
+
+var (
+	cidr *string
 )
 
-func produceResults(addrPrefix string, resultsChannel chan Results) {
+func produceResults(prefix netip.Prefix, resultsChannel chan Results) {
 	var wgLookups sync.WaitGroup
 
-	for i := 0; i < 256; i++ {
-		ipAddress := fmt.Sprintf("%s%d", addrPrefix, i)
+	// fmt.Printf("%v\n", prefix.Masked().Addr())
 
+	addr := prefix.Masked().Addr()
+	i := 0
+	for addrInNetwork(addr, prefix) {
 		wgLookups.Add(1)
-		go func(i int, c chan Results) {
+		go func(i int, addr netip.Addr, c chan Results) {
 			defer wgLookups.Done()
 
-			names, err := net.LookupAddr(ipAddress)
+			names, err := net.LookupAddr(addr.String())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error looking up %v: %v\n", ipAddress, err)
+				fmt.Fprintf(os.Stderr, "Error looking up %v: %v\n", addr, err)
 			} else {
-				results := Results{index: i, ipAddress: ipAddress, names: names}
+				results := Results{index: i, ipAddress: addr.String(), names: names}
 				c <- results
 			}
-		}(i, resultsChannel)
+		}(i, addr, resultsChannel)
+		i++
+		addr = addr.Next()
 	}
 
 	wgLookups.Wait()
 	close(resultsChannel)
 }
 
+func addrInNetwork(addr netip.Addr, prefix netip.Prefix) bool {
+	return prefix.Contains(addr)
+}
+
 func consumeAndOutputResults(resultsChannel chan Results) {
-	var results [256]Results
+	results := make(map[int]Results)
 	for result := range resultsChannel {
 		results[result.index] = result
 	}
 
+	sortedResults := sortResults(results)
+
 	fmt.Println("Address,Name")
-	for _, result := range results {
+	for _, result := range sortedResults {
 		for _, name := range result.names {
 			fmt.Printf("%s,\"%s\"\n", result.ipAddress, name)
 		}
 	}
 }
 
+func sortResults(resultsMap map[int]Results) []Results {
+	results := make([]Results, len(resultsMap))
+	for k, v := range resultsMap {
+		results[k] = v
+	}
+
+	sort.Sort(sortResultsByIndex(results))
+	return results
+}
+
 func main() {
-	prefix3octet := pflag.StringP("prefix3", "3", "", "3-octet address prefix, e.g. 192.168.1. or 192.168.1")
+	cidr = pflag.String("cidr", "", "CIDR range")
 	pflag.Parse()
 
-	var prefix3octetString string
-	if matched, _ := regexp.MatchString(octet3Regexp, *prefix3octet); matched {
-		prefix3octetString = *prefix3octet + "."
-	} else if matched, _ := regexp.MatchString(octet3TrailingRegexp, *prefix3octet); matched {
-		prefix3octetString = *prefix3octet
-	} else {
+	if *cidr == "" {
 		pflag.Usage()
 		fmt.Fprintf(os.Stderr, `
-See https://golang.org/pkg/net/#hdr-Name_Resolution for details on using
-environment variables to force use of the golang resolver, which will return
-more than one domain name.
+	See https://golang.org/pkg/net/#hdr-Name_Resolution for details on using
+	environment variables to force use of the golang resolver, which will return
+	more than one domain name.
 
-Example:
-$ export GODEBUG=netdns=go    # force pure Go resolver
+	Example:
+	$ export GODEBUG=netdns=go    # force pure Go resolver
 `)
 		os.Exit(1)
 	}
 
+	prefix, err := netip.ParsePrefix(*cidr)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// fmt.Printf("%v %v\n", ipv4Addr, ipv4Net)
+
 	resultsChannel := make(chan Results)
-	go produceResults(prefix3octetString, resultsChannel)
+	go produceResults(prefix, resultsChannel)
 	consumeAndOutputResults(resultsChannel)
 }
