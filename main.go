@@ -18,11 +18,11 @@ type Results struct {
 	names     []string
 }
 
-type SortResultsByIndex []Results
+type sortResultsByIndex []Results
 
-func (a SortResultsByIndex) Len() int           { return len(a) }
-func (a SortResultsByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a SortResultsByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
+func (a sortResultsByIndex) Len() int           { return len(a) }
+func (a sortResultsByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortResultsByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
 
 var (
 	cidr *string
@@ -35,7 +35,7 @@ func produceResults(prefix netip.Prefix, resultsChannel chan Results) {
 
 	addr := prefix.Masked().Addr()
 	i := 0
-	for AddrInNetwork(addr, prefix) {
+	for addrInNetwork(addr, prefix) {
 		wgLookups.Add(1)
 		go func(i int, addr netip.Addr, c chan Results) {
 			defer wgLookups.Done()
@@ -56,7 +56,7 @@ func produceResults(prefix netip.Prefix, resultsChannel chan Results) {
 	close(resultsChannel)
 }
 
-func AddrInNetwork(addr netip.Addr, prefix netip.Prefix) bool {
+func addrInNetwork(addr netip.Addr, prefix netip.Prefix) bool {
 	return prefix.Contains(addr)
 }
 
@@ -82,7 +82,7 @@ func sortResults(resultsMap map[int]Results) []Results {
 		results[k] = v
 	}
 
-	sort.Sort(SortResultsByIndex(results))
+	sort.Sort(sortResultsByIndex(results))
 	return results
 }
 

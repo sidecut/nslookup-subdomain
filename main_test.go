@@ -22,7 +22,7 @@ func TestAddrInNetwork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := AddrInNetwork(tt.args.addr, tt.args.prefix); got != tt.want {
+			if got := addrInNetwork(tt.args.addr, tt.args.prefix); got != tt.want {
 				t.Errorf("AddrInNetwork() = %v, want %v", got, tt.want)
 			}
 		})
