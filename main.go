@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/spf13/pflag"
@@ -16,6 +17,12 @@ type Results struct {
 	ipAddress string
 	names     []string
 }
+
+type SortResultsByIndex []Results
+
+func (a SortResultsByIndex) Len() int           { return len(a) }
+func (a SortResultsByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a SortResultsByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
 
 var (
 	cidr *string
@@ -59,12 +66,24 @@ func consumeAndOutputResults(resultsChannel chan Results) {
 		results[result.index] = result
 	}
 
+	sortedResults := sortResults(results)
+
 	fmt.Println("Address,Name")
-	for _, result := range results {
+	for _, result := range sortedResults {
 		for _, name := range result.names {
 			fmt.Printf("%s,\"%s\"\n", result.ipAddress, name)
 		}
 	}
+}
+
+func sortResults(resultsMap map[int]Results) []Results {
+	results := make([]Results, len(resultsMap))
+	for k, v := range resultsMap {
+		results[k] = v
+	}
+
+	sort.Sort(SortResultsByIndex(results))
+	return results
 }
 
 func main() {
